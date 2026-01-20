@@ -46,6 +46,10 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IEstudioRepository, EstudioRepository>();
 builder.Services.AddScoped<IDireccionRepository, DireccionRepository>();
 builder.Services.AddScoped<ISessionLogRepository, SessionLogRepository>();
+
+// ✅ AGREGAR ESTA LÍNEA
+builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IEstudioService, EstudioService>();

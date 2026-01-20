@@ -20,22 +20,25 @@ public class AuthService : IAuthService
     private readonly IUserRepository _userRepository;
     private readonly ISessionLogRepository _sessionLogRepository;
     private readonly IConfiguration _configuration;
+    private readonly IPasswordHasher _passwordHasher;
 
     public AuthService(
-        IUserRepository userRepository,
-        ISessionLogRepository sessionLogRepository,
-        IConfiguration configuration)
+    IUserRepository userRepository,
+    ISessionLogRepository sessionLogRepository,
+    IConfiguration configuration,
+    IPasswordHasher passwordHasher) // ✅ AGREGAR PARÁMETRO
     {
         _userRepository = userRepository;
         _sessionLogRepository = sessionLogRepository;
         _configuration = configuration;
+        _passwordHasher = passwordHasher; // ✅ AGREGAR ASIGNACIÓN
     }
 
     public async Task<LoginResponseDto?> LoginAsync(LoginDto loginDto)
     {
         var usuario = await _userRepository.GetByEmailAsync(loginDto.Email);
-        
-        if (usuario == null || !BCrypt.Net.BCrypt.Verify(loginDto.Password, usuario.PasswordHash))
+
+        if (usuario == null || !_passwordHasher.VerifyPassword(loginDto.Password, usuario.PasswordHash))
         {
             return null;
         }
@@ -76,7 +79,7 @@ public class AuthService : IAuthService
         {
             Nombre = registerDto.Nombre,
             Email = registerDto.Email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
+            PasswordHash = _passwordHasher.HashPassword(registerDto.Password),
             Rol = registerDto.Rol,
             FechaCreacion = DateTime.UtcNow
         };
