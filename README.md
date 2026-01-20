@@ -5,6 +5,7 @@ Sistema Full Stack de gestión de usuarios con autenticación JWT, control de ac
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://reactjs.org/)
 [![SQL Server](https://img.shields.io/badge/SQL%20Server-2025-CC2927?logo=microsoft-sql-server)](https://www.microsoft.com/sql-server)
+[![SOLID](https://img.shields.io/badge/Architecture-SOLID-success)](https://en.wikipedia.org/wiki/SOLID)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
@@ -15,6 +16,7 @@ Sistema Full Stack de gestión de usuarios con autenticación JWT, control de ac
 - [Stack Tecnológico](#-stack-tecnológico)
 - [Características](#-características)
 - [Arquitectura](#-arquitectura)
+- [Principios SOLID](#-principios-solid)
 - [Requisitos Previos](#-requisitos-previos)
 - [Instalación](#-instalación)
 - [Uso](#-uso)
@@ -22,7 +24,6 @@ Sistema Full Stack de gestión de usuarios con autenticación JWT, control de ac
 - [Usuarios de Prueba](#-usuarios-de-prueba)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
 - [Screenshots](#-screenshots)
-
 
 ---
 
@@ -38,6 +39,7 @@ Sistema Full Stack de gestión de usuarios con autenticación JWT, control de ac
 - ✅ Registro de sesiones
 - ✅ Interfaz responsive y moderna
 - ✅ API RESTful documentada con Swagger
+- ✅ **Arquitectura SOLID aplicada**
 
 ---
 
@@ -69,6 +71,7 @@ Sistema Full Stack de gestión de usuarios con autenticación JWT, control de ac
 - 🔒 Hash de contraseñas con BCrypt
 - 🛡️ Validación de roles en cada endpoint
 - 📝 Registro de sesiones (login/logout)
+- 🏗️ **Patrón de abstracción para password hashing (SOLID)**
 
 ### Gestión de Usuarios (Solo Admin)
 - 👥 Listado de todos los usuarios
@@ -137,6 +140,127 @@ Sistema Full Stack de gestión de usuarios con autenticación JWT, control de ac
 │        Services                 │  ← Axios API calls
 └─────────────────────────────────┘
 ```
+
+---
+
+## 🎓 Principios SOLID
+
+Este proyecto implementa los **principios SOLID** para garantizar código mantenible, testeable y extensible.
+
+### Dependency Inversion Principle (DIP)
+
+#### 🔐 Password Hashing con Abstracción
+
+**Problema:** AuthService dependía directamente de BCrypt (implementación concreta), violando el principio DIP.
+
+**Solución:** Implementación de la abstracción `IPasswordHasher`.
+
+#### Estructura:
+
+```
+Services/
+├── IPasswordHasher.cs              # Interfaz (abstracción)
+└── BcryptPasswordHasher.cs         # Implementación concreta
+```
+
+#### Código:
+
+**Interfaz:**
+```csharp
+public interface IPasswordHasher
+{
+    string HashPassword(string password);
+    bool VerifyPassword(string password, string hashedPassword);
+}
+```
+
+**Implementación:**
+```csharp
+public class BcryptPasswordHasher : IPasswordHasher
+{
+    public string HashPassword(string password)
+    {
+        return BCrypt.Net.BCrypt.HashPassword(password);
+    }
+
+    public bool VerifyPassword(string password, string hashedPassword)
+    {
+        return BCrypt.Net.BCrypt.Verify(password, hashedPassword);
+    }
+}
+```
+
+**Inyección en AuthService:**
+```csharp
+public class AuthService : IAuthService
+{
+    private readonly IPasswordHasher _passwordHasher;
+    
+    public AuthService(IPasswordHasher passwordHasher, ...)
+    {
+        _passwordHasher = passwordHasher;
+    }
+    
+    public async Task<UsuarioDto?> RegisterAsync(RegisterDto dto)
+    {
+        var usuario = new Usuario
+        {
+            // ✅ Usa abstracción, no implementación concreta
+            PasswordHash = _passwordHasher.HashPassword(dto.Password)
+        };
+        // ...
+    }
+}
+```
+
+**Registro en DI Container:**
+```csharp
+// Program.cs
+builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
+```
+
+#### Beneficios:
+
+✅ **Testeable**
+```csharp
+// Unit test fácil con mocking
+var mockHasher = new Mock<IPasswordHasher>();
+mockHasher.Setup(h => h.HashPassword(It.IsAny<string>()))
+          .Returns("hashed_password");
+          
+var service = new AuthService(mockHasher.Object, ...);
+// Test sin dependencia de BCrypt real
+```
+
+✅ **Extensible**
+```csharp
+// Cambiar a Argon2 sin modificar AuthService
+public class Argon2PasswordHasher : IPasswordHasher
+{
+    public string HashPassword(string password)
+    {
+        return Argon2.Hash(password);
+    }
+    
+    public bool VerifyPassword(string password, string hashedPassword)
+    {
+        return Argon2.Verify(hashedPassword, password);
+    }
+}
+
+// En Program.cs, cambiar UNA línea:
+builder.Services.AddScoped<IPasswordHasher, Argon2PasswordHasher>();
+```
+
+✅ **Mantenible**
+- AuthService no conoce detalles de implementación
+- Código desacoplado y limpio
+- Fácil de entender y modificar
+
+✅ **Cumple SOLID**
+- **S**ingle Responsibility: BcryptPasswordHasher solo hashea passwords
+- **O**pen/Closed: Abierto a extensión, cerrado a modificación
+- **D**ependency Inversion: Depende de abstracción, no de concreción
 
 ---
 
@@ -331,6 +455,8 @@ ZocoFullStack/
 │   │   └── DireccionesController.cs
 │   │
 │   ├── Services/                 # Lógica de negocio
+│   │   ├── IPasswordHasher.cs            # ✨ SOLID - Abstracción
+│   │   ├── BcryptPasswordHasher.cs       # ✨ SOLID - Implementación
 │   │   ├── AuthService.cs
 │   │   ├── UserService.cs
 │   │   ├── EstudioService.cs
@@ -351,23 +477,24 @@ ZocoFullStack/
 │   ├── DTOs/                     # Data Transfer Objects
 │   ├── Data/                     # DbContext y DbInitializer
 │   ├── appsettings.json          # Configuración
-│   └── Program.cs                # Punto de entrada
+│   └── Program.cs                # Punto de entrada + DI
 │
 ├── Frontend/                     # React App
 │   ├── src/
 │   │   ├── components/           # Componentes reusables
 │   │   ├── pages/                # Vistas principales
-│   │   │   ├── Login.jsx
-│   │   │   ├── Dashboard.jsx
-│   │   │   └── Usuarios.jsx
+│   │   │   ├── LoginPage.jsx
+│   │   │   ├── DashboardPage.jsx
+│   │   │   └── UsuariosPage.jsx
 │   │   │
 │   │   ├── services/             # API calls
+│   │   │   ├── api.js
 │   │   │   ├── authService.js
 │   │   │   ├── userService.js
 │   │   │   ├── estudioService.js
 │   │   │   └── direccionService.js
 │   │   │
-│   │   ├── context/              # Estado global
+│   │   ├── contexts/             # Estado global
 │   │   │   └── AuthContext.jsx
 │   │   │
 │   │   ├── App.jsx               # Router principal
@@ -378,7 +505,6 @@ ZocoFullStack/
 │   └── tailwind.config.js
 │
 ├── README.md                     # Este archivo
-├── DECISIONES_TECNICAS.md        # Decisiones de diseño
 └── .gitignore
 ```
 
@@ -389,22 +515,17 @@ ZocoFullStack/
 ### Login
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/05c834f8-cf66-413c-8ec4-054eecf7c990" />
 
-
 ### Dashboard Admin
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/2edb9aae-7505-45df-8649-fd2bc1ad7dd9" />
-
 
 ### Gestión de Usuarios
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/31de4d19-c146-4fe2-a057-3ef086fece58" />
 
-
 ### Swagger API
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/90870653-b544-4dfc-8f24-3fbdf362a26c" />
 
-
 ### SQL Server - Tablas
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/ffe55a50-2c05-49ee-b0e9-cf33e73996db" />
-
 
 ---
 
@@ -422,20 +543,83 @@ cd Frontend
 npm test
 ```
 
-### API con Thunder Client
-Importar colección: `thunder-collection.json`
+### API con Swagger
+1. Abrir http://localhost:5000/swagger
+2. Hacer login para obtener token
+3. Click en "Authorize" y pegar: `Bearer {token}`
+4. Probar todos los endpoints
 
 ---
 
 ## 🔒 Seguridad
 
-- ✅ Contraseñas hasheadas con BCrypt
-- ✅ Tokens JWT con expiración
-- ✅ Validación de roles en cada endpoint
-- ✅ Validación de propiedad de recursos
-- ✅ CORS configurado
-- ✅ HTTPS recomendado en producción
+### Implementado
+- ✅ **Contraseñas hasheadas** con BCrypt (salt automático)
+- ✅ **Tokens JWT** con expiración de 60 minutos
+- ✅ **Validación de roles** en cada endpoint (`[Authorize(Roles = "Admin")]`)
+- ✅ **Validación de propiedad** de recursos (usuarios solo acceden a sus datos)
+- ✅ **CORS** configurado apropiadamente
+- ✅ **Inyección de dependencias** para password hashing (SOLID)
+- ✅ **Claims JWT** completos (UserId, Email, Rol, Nombre)
 
+### Recomendaciones para Producción
+- 🔐 Usar **HTTPS** obligatoriamente
+- 🔑 Mover secretos a **Azure Key Vault** o variables de entorno
+- 📊 Implementar **logging** con Serilog o Application Insights
+- 🛡️ Agregar **rate limiting** en endpoints críticos
+- 🔍 Implementar **auditoría** de acciones sensibles
+- 🚨 Configurar **alertas** de seguridad
+
+---
+
+## 🚀 Deploy
+
+### Backend (Azure App Service)
+```bash
+# Publicar
+dotnet publish -c Release
+
+# Configurar connection string en Azure Portal
+# Configurar JWT settings en Application Settings
+```
+
+### Frontend (Vercel/Netlify)
+```bash
+# Build
+npm run build
+
+# Deploy con Vercel
+vercel --prod
+
+# Configurar variable de entorno:
+# VITE_API_URL=https://tu-api.azurewebsites.net/api
+```
+
+---
+
+## 📝 Licencia
+
+Este proyecto está bajo la Licencia MIT.
+
+---
+
+## 👨‍💻 Autor
+
+**Tu Nombre**
+- GitHub: [@Vladimir-Bulan](https://github.com/Vladimir-Bulan)
+- LinkedIn: [@VladimirBulan](https://www.linkedin.com/in/vladimir-bulan-60083b21b)
+
+---
+
+## 🙏 Agradecimientos
+
+- Prueba técnica para **Zoco**
+- Arquitectura basada en principios **SOLID**
+- Inspirado en mejores prácticas de **Clean Architecture**
+
+---
+
+**⭐ Si te gustó este proyecto, dale una estrella en GitHub!**
 
 
 
