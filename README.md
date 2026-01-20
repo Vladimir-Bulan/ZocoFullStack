@@ -403,7 +403,7 @@ ZocoFullStack/
 
 
 ### SQL Server - Tablas
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/925448bb-9b54-4e3c-820a-9cbf40f36788" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/ffe55a50-2c05-49ee-b0e9-cf33e73996db" />
 
 
 ---
