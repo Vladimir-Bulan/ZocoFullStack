@@ -21,10 +21,8 @@ Sistema Full Stack de gestión de usuarios con autenticación JWT, control de ac
 - [API Endpoints](#-api-endpoints)
 - [Usuarios de Prueba](#-usuarios-de-prueba)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
-- [Deploy](#-deploy)
-- [Documentación Adicional](#-documentación-adicional)
 - [Screenshots](#-screenshots)
-- [Licencia](#-licencia)
+
 
 ---
 
