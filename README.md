@@ -613,7 +613,6 @@ Este proyecto está bajo la Licencia MIT.
 
 ## 🙏 Agradecimientos
 
-- Prueba técnica para **Zoco**
 - Arquitectura basada en principios **SOLID**
 - Inspirado en mejores prácticas de **Clean Architecture**
 
